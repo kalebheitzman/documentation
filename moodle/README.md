@@ -1,13 +1,13 @@
 # Moodle Install Instructions
 
-### Create and ssh into the VM
+## Create and ssh into the VM
 
 ```bash
 multipass launch --name moodle --cpus 4 --disk 64G --memory 8G -vvvv
 multipass sh moodle
 ```
 
-### Install and configure PHP
+## Install and configure PHP
 
 Install PHP
 

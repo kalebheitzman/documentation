@@ -22,6 +22,10 @@ sudo apt-get install -y php8.1-cli php8.1-curl php8.1-fpm php8.1-gd \
 Customize the configuration at `/etc/php/8.1/fpm/conf.d/custom.ini`
 
 ```
+sudo nano /etc/php/8.1/fpm/conf.d/custom.ini
+```
+
+```
 [php]
 file_uploads = On
 allow_url_fopen = On
@@ -33,6 +37,12 @@ upload_max_filesize = 200M
 max_execution_time = 600
 date.timezone = America/New_York
 max_input_vars = 5000
+```
+
+Reload the configuration
+
+```
+sudo systemctl reload php8.1-fpm.service
 ```
 
 ### Install additional libs

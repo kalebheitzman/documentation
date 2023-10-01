@@ -7,12 +7,17 @@ multipass launch --name moodle --cpus 4 --disk 64G --memory 8G -vvvv
 multipass sh moodle
 ```
 
+## Initial update
+
+```bash
+sudo apt-get update && sudo apt-get install -y software-properties-common
+```
+
 ## Install and configure PHP
 
 Install PHP
 
 ```bash
-sudo apt-get update
 sudo apt-get install -y php8.1-cli php8.1-curl php8.1-fpm php8.1-gd \
     php8.1-imagick php8.1-intl php8.1-mbstring php8.1-ldap php8.1-opcache \
     php8.1-pgsql php8.1-pspell php8.1-redis php8.1-soap php8.1-xml \
@@ -117,4 +122,79 @@ Create the moodledata folder
 ```bash
 sudo mkdir -p /var/moodledata
 sudo chown -R www-data /var/moodledata
+```
+
+## Configuring Nginx
+
+```conf
+server {
+    listen          80;
+    listen          [::]:80;
+    server_name     _;
+    return          301 https://$host$request_uri;
+}
+
+server {
+    # server information
+    listen          443         ssl http2;
+    listen          [::]:443    ssl http2;
+    server_name _;
+
+    # SSL
+    ssl_protocols               TLSv1 TLSv1.1 TLSv1.2;
+    ssl_prefer_server_ciphers   on;
+    ssl_ciphers                 "ECDH+AESGCM:ECDH+AES256:ECDH+AES128:!ADH:!AECDH:!MD5;";
+
+    ssl_certificate             /etc/ssl/certs/moodle.local.pem;
+    ssl_certificate_key         /etc/ssl/certs/moodle.local-key.pem;
+    # End SSL
+
+    # Logging
+    access_log  /var/log/nginx/access.log;
+    error_log   /var/log/nginx/error.log;
+    # End Logging
+
+    # Configuration
+    root /opt/moodle;
+    index index.php;
+    client_max_body_size 500M;
+    autoindex off;
+
+    # This passes 404 pages to Moodle so they can be themed
+    error_page 404 /error/index.php;
+    error_page 403 =404 /error/index.php;
+
+    # Hide all dot files but allow "Well-Known URIs" as per RFC 5785
+    location ~ /\.(?!well-known).* {
+        return 404;
+    }
+
+    # Moodle rules.
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Dataroot
+    location /dataroot/ {
+        internal;
+        alias /var/moodledata/;
+    }
+
+    # Pass all .php files onto a php-fpm/php-fcgi server.
+    location ~ [^/].php(/|$) {
+        fastcgi_split_path_info   ^(.+\.php)(/.+)$;
+        fastcgi_index             index.php;
+        fastcgi_pass              unix:/var/run/php/php8.1-fpm.sock;
+        include                   fastcgi_params;
+        fastcgi_param             PATH_INFO $fastcgi_path_info;
+        fastcgi_param             SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+
+    # This should be after the php fpm rule and very close to the last nginx ruleset.
+    # Don't allow direct access to various internal files. See MDL-69333
+    location ~ (/vendor/|/node_modules/|composer\.json|/readme|/README|readme\.txt|/upgrade\.txt|db/install\.xml|/fixtures/|/behat/|phpunit\.xml|\.lock|environment\.xml) {
+        deny all;
+        return 404;
+    }
+}
 ```

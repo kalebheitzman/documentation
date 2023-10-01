@@ -7,6 +7,16 @@ multipass launch --name moodle --cpus 4 --disk 64G --memory 8G -vvvv
 multipass sh moodle
 ```
 
+## Install Moodle
+
+Installing via git
+
+```bash
+sudo mkdir -p /opt/moodle
+sudo chown ubuntu:ubuntu /opt/moodle
+git clone git://git.moodle.org/moodle.git /opt/moodle
+```
+
 ## Install and configure PHP
 
 Install PHP
@@ -43,19 +53,38 @@ Reload the configuration
 
 ```
 sudo systemctl reload php8.1-fpm.service
+sudo systemctl status php8.1-fpm
 ```
 
-### Install additional libs
+## Install additional libs
+
+These are additional libraries used by Moodle
 
 ```bash
 sudo apt-get intall -y git aspell clamav graphviz ghostscript
 ```
 
-### Redis Configuration
+## Redis Configuration
 
 Redis is used for application caching
 
 ```bash
+sudo apt-get install -y redis-server
+sudo systemctl status redis
+```
 
+## PostgreSQL Configuration
 
+Install postgres
+
+```bash
+sudo apt-get install -y postgresql postgresql-contrib
+```
+
+Create user and database. You will be prompted for a password.
+
+```bash
+sudo -u postgres createuser moodle --no-createdb \
+   --no-superuser --no-createrole --pwprompt
+sudo -u postgres createdb moodle_production --owner=moodle
 ```
